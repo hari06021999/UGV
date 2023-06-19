@@ -9,106 +9,15 @@
 #include <sstream>
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/Int32MultiArray.h"
+#include "std_msgs/Int32.h"
 #include <iostream>
 #include<stdlib.h>
 using namespace std;
 /**
  * This tutorial demonstrates simple receipt of messages over the ROS system.
  */
- int Arr[90];
-void chatterCallback(const std_msgs::Int32MultiArray::ConstPtr& array)
-{
-   unsigned int microsecond = 1000000;
-    ROS_INFO("called");
-      int i = 0,new_x=0,y=0,new_degree=0;
-      int old_x=0,old_degree=0;
-      int read_setpin_status;
- int read_resetpin_status;
-RS485_Modbus_RTU test1(testDevParam);
-	//getting modbus pointer variable for local access
-	modbus_t *ctx = test1.getDev();
-
-	MOD8I8O ioDev1;
-	ioDev1.mapModbus(test1.isModbusOpen(), ctx, 1);
-    // print all the remaining numbers
-    for(std::vector<int>::const_iterator it = array->data.begin(); it != array->data.end(); ++it)
-    {
-        Arr[i] = *it;
-        i++;
-    }
-    for(int j = 0; j < 3; j++)
-    {
-        printf("%d ", Arr[j]);
-    }
-
-    printf("\n");
-    new_x=Arr[0];
-    new_degree=Arr[2];
-   
-    if(new_degree<0) // Turn left
-    {
-         for(int i=1;i<=new_degree;i++)
-    	 {
-    	 ROS_INFO("Turn Left");
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_CLR);   
-		//usleep(1 * microsecond);//sleeps for 1 second
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_SET);
-		//usleep(1 * microsecond);//sleeps for 1 second
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);  
-		//usleep(1 * microsecond);//sleeps for 1 second  
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_SET);
-		//usleep(1 * microsecond);//sleeps for 1 second
-		
-		
-    
-   	 }
-    }
-    else if(new_degree>=0) // Turn right
-    {
-         for(int i=1;i<=new_degree;i++)
-    	 {                                  
-    	    ROS_INFO("Turn Right");
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_SET); 
-		//usleep(1 * microsecond);//sleeps for 1 second  
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
-		//usleep(1 * microsecond);//sleeps for 1 second
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_SET); 
-		//usleep(1 * microsecond);//sleeps for 1 second   
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_CLR);
-		//usleep(1 * microsecond);//sleeps for 1 second
-		
-   	 }
-    }  
-	
-	
-   if(new_x)
-   {
-   	for(int i=1;i<=new_x;i++)
-    	 {                                  
-    	    ROS_INFO("Forwared");
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_SET);    
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);    
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_SET);
-    
-   	 }
-   }
-           ROS_INFO("RESET");
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_CLR);    
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);    
-		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_CLR); 
-    
-       
-       
-    
-    
-    return ;
-  
-}
-
-
+ void DegreeCallback(const std_msgs::Int32::ConstPtr& deg);
+ void PositionCallback(const std_msgs::Int32::ConstPtr& pos);
 int main(int argc, char **argv)
 {
   /**
@@ -145,10 +54,11 @@ ros::Rate loop_rate(10);
    * is the number of messages that will be buffered up before beginning to throw
    * away the oldest ones.
    */
-  ros::Subscriber sub = n.subscribe("array", 1000, chatterCallback);
-  
-  
-  
+
+
+  ros::Subscriber sub = n.subscribe("position", 1000, PositionCallback);
+  //ros::Subscriber sub2 = n.subscribe("degree", 1000, DegreeCallback);
+ 
 	  /**
    * ros::spin() will enter a loop, pumping callbacks.  With this version, all
    * callbacks will be called from within this thread (the main one).  ros::spin()
@@ -158,4 +68,93 @@ ros::Rate loop_rate(10);
   ros::spin();
  loop_rate.sleep();
   return 0;
+} 
+void DegreeCallback(const std_msgs::Int32::ConstPtr& deg)
+{
+   unsigned int microsecond = 1000000;
+    ROS_INFO("Degree callback called");
+      int i = 0,new_x=0,y=0,new_degree=0;
+     RS485_Modbus_RTU test1(testDevParam);
+	//getting modbus pointer variable for local access
+	modbus_t *ctx = test1.getDev();
+
+	MOD8I8O ioDev1;
+	ioDev1.mapModbus(test1.isModbusOpen(), ctx, 1);
+       
+   printf("%d\n",deg->data);
+   
+    if(deg->data<0) // Turn left
+    {
+         for(int i=1;i<=deg->data;i++)
+    	 {
+    	// ROS_INFO("Turn Left");
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_CLR);   
+		//usleep(1 * microsecond);//sleeps for 1 second
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_SET);
+		//usleep(1 * microsecond);//sleeps for 1 second
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);  
+		//usleep(1 * microsecond);//sleeps for 1 second  
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_SET);
+		//usleep(1 * microsecond);//sleeps for 1 second
+		
+		
+    
+   	 }
+    }
+    if(deg->data>=0) // Turn right
+    {
+         for(int i=1;i<=deg->data;i++)
+    	 {                                  
+    	    //ROS_INFO("Turn Right");
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_SET); 
+		//usleep(1 * microsecond);//sleeps for 1 second  
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
+		//usleep(1 * microsecond);//sleeps for 1 second
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_SET); 
+		//usleep(1 * microsecond);//sleeps for 1 second   
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_CLR);
+		//usleep(1 * microsecond);//sleeps for 1 second
+		
+   	 }
+    }  
+	
+ 		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_CLR);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_CLR); 
+
+    
+    return ;
+  
+}
+
+void PositionCallback(const std_msgs::Int32::ConstPtr& pos)
+{
+  ROS_INFO("Position callback called");
+ printf("%d\n",pos->data);
+ RS485_Modbus_RTU test1(testDevParam);
+	//getting modbus pointer variable for local access
+	modbus_t *ctx = test1.getDev();
+
+	MOD8I8O ioDev1;
+	ioDev1.mapModbus(test1.isModbusOpen(), ctx, 1);
+  
+   	for(int i=1;i<=pos->data;i++)
+    	 {                                  
+    	        ROS_INFO("Forwared");
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_SET);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_SET);
+    
+   	 }
+        
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT1, PIN_CLR);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT2, PIN_CLR);
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT3, PIN_CLR);    
+		ioDev1.setOutputPin(MOD8I8O_W_R_OUTPUT_BIT4, PIN_CLR);
+		ROS_INFO("RESET");
+		 
+		
+	 return ;
 }
